@@ -12,6 +12,10 @@
       "destination": "/server.js"
     },
     {
+      "source": "/",
+      "destination": "/public/index.html"
+    },
+    {
       "source": "/:path*",
       "destination": "/public/:path*"
     }
