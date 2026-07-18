@@ -1,0 +1,17 @@
+{
+  "name": "website-inspector",
+  "version": "1.0.0",
+  "description": "Get a website source code.",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0"
+  }
+}
