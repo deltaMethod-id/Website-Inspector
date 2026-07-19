@@ -401,13 +401,13 @@
     codeContainer.innerHTML = `
       <div class="center-placeholder">
         <div class="spinner"></div>
-        <span>fetching website blueprint via proxy bypass...</span>
+        <span>fetching website blueprint via proxy API...</span>
       </div>
     `;
     copyCodeBtn.disabled = true;
 
     try {
-      // CORS Bypass API Proxy
+      // CORS API Proxy
       const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
       const response = await fetch(proxyUrl);
 
