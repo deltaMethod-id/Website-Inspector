@@ -100,29 +100,25 @@ export default function Dashboard() {
         throw new Error(data.message || "Export failed.");
       }
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      const host = (() => {
-        try {
-          return new URL(report.target).hostname;
-        } catch {
-          return "inspected-site";
-        }
-      })();
-      a.href = url;
-      a.download = `${host}-inspected.zip`;
-      a.click();
 
-      setTimeout(() => {
-      URL.revokeObjectURL(url);
-      a.remove();
-    }, 2000);
-    } catch (err) {
-      setErrorMessage((err as Error).message);
-    } finally {
-      setExporting(false);
-    }
-  }
+if (blob.size === 0) {
+  throw new Error("ZIP kosong.");
+}
+
+const url = URL.createObjectURL(blob);
+
+const a = document.createElement("a");
+a.href = url;
+a.download = `${host}-inspected.zip`;
+a.style.display = "none";
+
+document.body.appendChild(a);
+a.click();
+
+setTimeout(() => {
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}, 2000);
 
   return (
     <main className="dash-shell">
