@@ -7,14 +7,6 @@ import { InspectionReport } from "@/lib/types";
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: "50mb",
-    },
-  },
-};
-
 export async function POST(request: NextRequest) {
   const token = cookies().get(WIPAS_COOKIE_NAME)?.value;
   const authorized = await verifyWipasSessionToken(token);
