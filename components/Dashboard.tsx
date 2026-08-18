@@ -92,6 +92,13 @@ export default function Dashboard() {
   setExporting(true);
 
   try {
+const payload = JSON.stringify({ report });
+
+console.log(
+  "[EXPORT] Payload:",
+  (payload.length / 1024 / 1024).toFixed(2),
+  "MB"
+);
     const res = await fetch("/api/export", {
       method: "POST",
       headers: {
