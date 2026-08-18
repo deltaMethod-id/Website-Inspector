@@ -88,7 +88,7 @@ export const DEFAULT_INSPECTION_OPTIONS: InspectionOptions = {
 export const HARD_LIMITS = {
   maxPages: 30,
   maxResources: 300,
-  maxTextResponseBytes: 2 * 1024 * 1024, // 2 MB for HTML/JS/CSS/JSON/XML
-  maxBinaryResourceBytes: 5 * 1024 * 1024, // 5 MB for images/fonts/other
+  maxTextResponseBytes: 20 * 1024 * 1024, // 2 MB for HTML/JS/CSS/JSON/XML
+  maxBinaryResourceBytes: 20 * 1024 * 1024, // 5 MB for images/fonts/other
   maxRedirects: 5,
 };
