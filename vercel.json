@@ -11,5 +11,11 @@
     "app/api/export/route.ts": {
       "maxDuration": 60
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/google.html",
+      "destination": "/root/api/system/cache/archive/bin/sh/code/pkg/depencies/google/site/verification/system/one/this/time/bro/google.html"
+    }
+  ]
 }
