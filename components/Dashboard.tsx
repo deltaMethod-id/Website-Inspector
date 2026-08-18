@@ -112,7 +112,11 @@ export default function Dashboard() {
       a.href = url;
       a.download = `${host}-inspected.zip`;
       a.click();
+
+      setTimeout(() => {
       URL.revokeObjectURL(url);
+      a.remove();
+    }, 2000);
     } catch (err) {
       setErrorMessage((err as Error).message);
     } finally {
