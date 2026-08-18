@@ -144,6 +144,7 @@ export default function Dashboard() {
     setExporting(false);
   }
 }
+  return (
     <main className="dash-shell">
       <header className="dash-header glass-panel">
         <div>
