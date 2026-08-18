@@ -103,9 +103,7 @@ export default function Dashboard() {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      throw new Error(
-        data.message || "Export failed."
-      );
+      throw new Error(data.message || "Export failed.");
     }
 
     const blob = await res.blob();
@@ -125,7 +123,6 @@ export default function Dashboard() {
     })();
 
     const a = document.createElement("a");
-
     a.href = url;
     a.download = `${host}-inspected.zip`;
     a.style.display = "none";
@@ -146,23 +143,7 @@ export default function Dashboard() {
   } finally {
     setExporting(false);
   }
-}
-
-const url = URL.createObjectURL(blob);
-
-const a = document.createElement("a");
-a.href = url;
-a.download = `${host}-inspected.zip`;
-a.style.display = "none";
-
-document.body.appendChild(a);
-a.click();
-
-setTimeout(() => {
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}, 2000);
-
+  }
   return (
     <main className="dash-shell">
       <header className="dash-header glass-panel">
