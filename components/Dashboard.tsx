@@ -87,22 +87,65 @@ export default function Dashboard() {
   }
 
   async function handleExportZip() {
-    if (!report) return;
-    setExporting(true);
-    try {
-      const res = await fetch("/api/export", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ report }),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.message || "Export failed.");
-      }
-      const blob = await res.blob();
+  if (!report) return;
 
-if (blob.size === 0) {
-  throw new Error("ZIP kosong.");
+  setExporting(true);
+
+  try {
+    const res = await fetch("/api/export", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+      body: JSON.stringify({ report }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(
+        data.message || "Export failed."
+      );
+    }
+
+    const blob = await res.blob();
+
+    if (blob.size === 0) {
+      throw new Error("ZIP kosong.");
+    }
+
+    const url = URL.createObjectURL(blob);
+
+    const host = (() => {
+      try {
+        return new URL(report.target).hostname;
+      } catch {
+        return "inspected-site";
+      }
+    })();
+
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = `${host}-inspected.zip`;
+    a.style.display = "none";
+
+    document.body.appendChild(a);
+    a.click();
+
+    setTimeout(() => {
+      a.remove();
+      URL.revokeObjectURL(url);
+    }, 2000);
+  } catch (error) {
+    setErrorMessage(
+      error instanceof Error
+        ? error.message
+        : "Export failed."
+    );
+  } finally {
+    setExporting(false);
+  }
 }
 
 const url = URL.createObjectURL(blob);
