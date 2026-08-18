@@ -92,32 +92,24 @@ export default function Dashboard() {
   setExporting(true);
 
   try {
-const payload = JSON.stringify({ report });
+    // Load ZIP builder hanya ketika tombol Export ditekan.
+    // Jadi JSZip tidak masuk initial client bundle.
+    const { buildInspectionZip } = await import("../lib/zip");
 
-console.log(
-  "[EXPORT] Payload:",
-  (payload.length / 1024 / 1024).toFixed(2),
-  "MB"
-);
-    const res = await fetch("/api/export", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      cache: "no-store",
-      body: JSON.stringify({ report }),
-    });
+    const zipBytes = await buildInspectionZip(report);
 
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.message || "Export failed.");
-    }
-
-    const blob = await res.blob();
-
-    if (blob.size === 0) {
+    if (!zipBytes || zipBytes.length === 0) {
       throw new Error("ZIP kosong.");
     }
+
+    const blob = new Blob([
+      zipBytes.buffer.slice(
+        zipBytes.byteOffset,
+        zipBytes.byteOffset + zipBytes.byteLength
+      ) as ArrayBuffer,
+    ], {
+      type: "application/zip",
+    });
 
     const url = URL.createObjectURL(blob);
 
@@ -130,6 +122,7 @@ console.log(
     })();
 
     const a = document.createElement("a");
+
     a.href = url;
     a.download = `${host}-inspected.zip`;
     a.style.display = "none";
@@ -145,13 +138,12 @@ console.log(
     setErrorMessage(
       error instanceof Error
         ? error.message
-        : "Export failed."
+        : "Export ZIP failed."
     );
   } finally {
     setExporting(false);
   }
-  }
-  return (
+}
     <main className="dash-shell">
       <header className="dash-header glass-panel">
         <div>
