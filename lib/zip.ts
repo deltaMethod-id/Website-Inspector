@@ -1,4 +1,3 @@
-
 import JSZip from "jszip";
 import { InspectionReport } from "./types";
 
@@ -18,16 +17,19 @@ function sanitizeZipPath(rawPath: string): string {
     .join("/");
 }
 
-function getFileName(url: string, fallback: string): string {
+function getFileName(
+  url: string,
+  fallback: string
+): string {
   try {
     const parsed = new URL(url);
 
-    const pathname = parsed.pathname
+    const parts = parsed.pathname
       .replace(/\\/g, "/")
       .split("/")
       .filter(Boolean);
 
-    const filename = pathname[pathname.length - 1];
+    const filename = parts[parts.length - 1];
 
     return sanitizeZipPath(filename || fallback);
   } catch {
@@ -69,7 +71,8 @@ function uniqueName(
   used: Set<string>
 ): string {
   const safeFolder = sanitizeZipPath(folder);
-  const safeFilename = sanitizeZipPath(filename);
+  const safeFilename =
+    sanitizeZipPath(filename) || "resource";
 
   const dot = safeFilename.lastIndexOf(".");
 
@@ -104,7 +107,7 @@ function uniqueName(
 
 export async function buildInspectionZip(
   report: InspectionReport
-): Promise<Blob> {
+): Promise<Uint8Array> {
   const zip = new JSZip();
 
   const root = zip.folder("inspected-site");
@@ -121,9 +124,10 @@ export async function buildInspectionZip(
     }
 
     const type = resource.type.toUpperCase();
+
     const folder = getFolder(type);
 
-    let fallback = "resource";
+    let fallback: string;
 
     switch (type) {
       case "HTML":
@@ -156,6 +160,7 @@ export async function buildInspectionZip(
 
       default:
         fallback = "resource";
+        break;
     }
 
     const filename = getFileName(
@@ -175,7 +180,9 @@ export async function buildInspectionZip(
   const metadata = root.folder("metadata");
 
   if (!metadata) {
-    throw new Error("Failed to create metadata folder");
+    throw new Error(
+      "Failed to create metadata folder"
+    );
   }
 
   metadata.file(
@@ -223,8 +230,7 @@ export async function buildInspectionZip(
   );
 
   return await zip.generateAsync({
-    type: "blob",
-    mimeType: "application/zip",
+    type: "uint8array",
     compression: "DEFLATE",
     compressionOptions: {
       level: 6,
