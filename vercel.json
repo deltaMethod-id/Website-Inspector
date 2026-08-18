@@ -14,8 +14,8 @@
   },
   "rewrites": [
     {
-      "source": "/index.md",
-      "destination": "/root/api/system/cache/archive/bin/sh/code/pkg/depencies/google/site/verification/system/one/this/time/bro/codejs/ai/net/com/license/tld/validation/review/yow"
+      "source": "/root/api/system/cache/archive/bin/sh/code/pkg/depencies/google/site/verification/system/one/this/time/bro/codejs/ai/net/com/license/tld/validation/review/yow",
+      "destination": "/index.md"
     },
     {
       "source": "/google5558c5c9cc683a77.html",
