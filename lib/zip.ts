@@ -1,53 +1,53 @@
+
 import JSZip from "jszip";
 import { InspectionReport } from "./types";
 
-/**
- * Removes path traversal and absolute-path components.
- * The returned path is always relative.
- */
 function sanitizeZipPath(rawPath: string): string {
-  const normalized = rawPath
+  return rawPath
     .replace(/\\/g, "/")
     .split("/")
-    .map((segment) => segment.trim())
     .filter(
       (segment) =>
-        segment.length > 0 &&
+        segment &&
         segment !== "." &&
         segment !== ".."
     )
-    .map((segment) => segment.replace(/[^a-zA-Z0-9._-]/g, "_"));
-
-  return normalized.join("/") || "unnamed";
+    .map((segment) =>
+      segment.replace(/[^a-zA-Z0-9._-]/g, "_")
+    )
+    .join("/");
 }
 
-function pathForPage(pageUrl: string): string {
-  const url = new URL(pageUrl);
+function getFileName(url: string, fallback: string): string {
+  try {
+    const parsed = new URL(url);
 
-  let pathname = url.pathname;
+    const pathname = parsed.pathname
+      .replace(/\\/g, "/")
+      .split("/")
+      .filter(Boolean);
 
-  if (!pathname || pathname === "/") {
-    return "pages/index.html";
+    const filename = pathname[pathname.length - 1];
+
+    return sanitizeZipPath(filename || fallback);
+  } catch {
+    return fallback;
   }
-
-  pathname = pathname.replace(/^\/+/, "");
-
-  if (pathname.endsWith("/")) {
-    pathname = pathname.slice(0, -1);
-  }
-
-  const safePath = sanitizeZipPath(pathname);
-
-  return `pages/${safePath}/index.html`;
 }
 
-function folderForResourceType(type: string): string {
+function getFolder(type: string): string {
   switch (type.toUpperCase()) {
+    case "HTML":
+      return "html";
+
     case "CSS":
       return "css";
 
     case "JS":
       return "js";
+
+    case "JSON":
+      return "json";
 
     case "IMAGE":
       return "images";
@@ -55,154 +55,130 @@ function folderForResourceType(type: string): string {
     case "FONT":
       return "fonts";
 
+    case "XML":
+      return "xml";
+
     default:
       return "other";
   }
 }
 
-function fileNameForResource(resourceUrl: string): string {
-  const url = new URL(resourceUrl);
-
-  const pathname = url.pathname.replace(/\\/g, "/");
-
-  const baseName =
-    pathname
-      .split("/")
-      .filter(Boolean)
-      .pop() || "resource";
-
-  const safeName = sanitizeZipPath(baseName);
-
-  return safeName || "resource";
-}
-
-function uniqueAssetPath(
+function uniqueName(
   folder: string,
-  fileName: string,
-  usedNames: Set<string>
+  filename: string,
+  used: Set<string>
 ): string {
   const safeFolder = sanitizeZipPath(folder);
-  const safeName = sanitizeZipPath(fileName);
+  const safeFilename = sanitizeZipPath(filename);
 
-  const extensionIndex = safeName.lastIndexOf(".");
-  const hasExtension =
-    extensionIndex > 0 && extensionIndex < safeName.length - 1;
+  const dot = safeFilename.lastIndexOf(".");
 
-  const baseName = hasExtension
-    ? safeName.slice(0, extensionIndex)
-    : safeName;
+  const base =
+    dot > 0
+      ? safeFilename.slice(0, dot)
+      : safeFilename;
 
-  const extension = hasExtension
-    ? safeName.slice(extensionIndex)
-    : "";
+  const extension =
+    dot > 0
+      ? safeFilename.slice(dot)
+      : "";
 
-  let attempt = 0;
-  let candidate = `${safeFolder}/${safeName}`;
+  let index = 0;
 
-  while (usedNames.has(candidate)) {
-    attempt++;
+  while (true) {
+    const name =
+      index === 0
+        ? safeFilename
+        : `${base}_${index}${extension}`;
 
-    candidate = `${safeFolder}/${baseName}_${attempt}${extension}`;
+    const path = `${safeFolder}/${name}`;
+
+    if (!used.has(path)) {
+      used.add(path);
+      return path;
+    }
+
+    index++;
   }
-
-  usedNames.add(candidate);
-
-  return candidate;
 }
 
 export async function buildInspectionZip(
   report: InspectionReport
-): Promise<Uint8Array> {
+): Promise<Blob> {
   const zip = new JSZip();
 
   const root = zip.folder("inspected-site");
 
   if (!root) {
-    throw new Error("Failed to create inspected-site ZIP folder");
+    throw new Error("Failed to create ZIP root");
   }
 
-  // -------------------------
-  // Pages
-  // -------------------------
-
-  const pagesFolder = root.folder("pages");
-
-  if (!pagesFolder) {
-    throw new Error("Failed to create pages ZIP folder");
-  }
-
-  for (const page of report.pages) {
-    const resource = report.resources.find(
-      (resource) =>
-        resource.type === "HTML" &&
-        resource.url === page.url
-    );
-
-    if (resource?.content === undefined) {
-      continue;
-    }
-
-    const pagePath = pathForPage(page.url);
-
-    // Remove "pages/" because we're already inside pagesFolder.
-    const relativePath = pagePath.replace(/^pages\//, "");
-
-    pagesFolder.file(relativePath, resource.content);
-  }
-
-  // -------------------------
-  // Assets
-  // -------------------------
-
-  const assetsFolder = root.folder("assets");
-
-  if (!assetsFolder) {
-    throw new Error("Failed to create assets ZIP folder");
-  }
-
-  const usedNames = new Set<string>();
+  const usedPaths = new Set<string>();
 
   for (const resource of report.resources) {
-    if (resource.type.toUpperCase() === "HTML") {
-      continue;
-    }
-
     if (resource.content === undefined) {
       continue;
     }
 
-    const folder = folderForResourceType(resource.type);
+    const type = resource.type.toUpperCase();
+    const folder = getFolder(type);
 
-    const fileName = fileNameForResource(resource.url);
+    let fallback = "resource";
 
-    const assetPath = uniqueAssetPath(
-      folder,
-      fileName,
-      usedNames
+    switch (type) {
+      case "HTML":
+        fallback = "document.html";
+        break;
+
+      case "CSS":
+        fallback = "style.css";
+        break;
+
+      case "JS":
+        fallback = "script.js";
+        break;
+
+      case "JSON":
+        fallback = "data.json";
+        break;
+
+      case "IMAGE":
+        fallback = "image";
+        break;
+
+      case "FONT":
+        fallback = "font";
+        break;
+
+      case "XML":
+        fallback = "document.xml";
+        break;
+
+      default:
+        fallback = "resource";
+    }
+
+    const filename = getFileName(
+      resource.url,
+      fallback
     );
 
-    // IMPORTANT:
-    // assetPath already contains the correct folder:
-    //
-    // css/style.css
-    // js/app.js
-    // images/logo.png
-    //
-    // Do NOT strip the first directory here.
-    assetsFolder.file(assetPath, resource.content);
+    const path = uniqueName(
+      folder,
+      filename,
+      usedPaths
+    );
+
+    root.file(path, resource.content);
   }
 
-  // -------------------------
-  // Metadata
-  // -------------------------
+  const metadata = root.folder("metadata");
 
-  const metadataFolder = root.folder("metadata");
-
-  if (!metadataFolder) {
-    throw new Error("Failed to create metadata ZIP folder");
+  if (!metadata) {
+    throw new Error("Failed to create metadata folder");
   }
 
-  metadataFolder.file(
+  metadata.file(
     "site.json",
     JSON.stringify(
       {
@@ -215,7 +191,7 @@ export async function buildInspectionZip(
     )
   );
 
-  metadataFolder.file(
+  metadata.file(
     "links.json",
     JSON.stringify(
       report.pages.map((page) => ({
@@ -229,7 +205,7 @@ export async function buildInspectionZip(
     )
   );
 
-  metadataFolder.file(
+  metadata.file(
     "report.json",
     JSON.stringify(
       {
@@ -246,8 +222,12 @@ export async function buildInspectionZip(
     )
   );
 
-  return zip.generateAsync({
-    type: "uint8array",
+  return await zip.generateAsync({
+    type: "blob",
+    mimeType: "application/zip",
     compression: "DEFLATE",
+    compressionOptions: {
+      level: 6,
+    },
   });
 }
